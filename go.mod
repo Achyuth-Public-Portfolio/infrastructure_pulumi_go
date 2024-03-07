@@ -1,4 +1,4 @@
-module Portfolio_infrastructure
+module infrastructure
 
 go 1.21
 
@@ -6,7 +6,7 @@ toolchain go1.21.5
 
 require (
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.24.0
-	github.com/pulumi/pulumi/sdk/v3 v3.108.1
+	github.com/pulumi/pulumi/sdk/v3 v3.109.0
 )
 
 require (
