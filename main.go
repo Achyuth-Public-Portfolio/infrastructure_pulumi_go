@@ -1,20 +1,31 @@
 package main
 
 import (
-	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/s3"
+	"infrastructure/aws_services"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		// Create an AWS resource (S3 Bucket)
-		bucket, err := s3.NewBucket(ctx, "my-bucket", nil)
-		if err != nil {
+
+		bucket, err := aws_services.CreateS3(ctx)
+
+		if(err != nil){
 			return err
 		}
 
-		// Export the name of the bucket
-		ctx.Export("bucketName", bucket.ID())
+		policy, err := aws_services.CreateIAMPolicy(ctx, bucket)
+
+		if(err != nil){
+			return err
+		}
+
+		// // Export the ARN (Amazon Resource Name) of the created policy
+		ctx.Export("policyArn", policy.Arn)
+		ctx.Export("Bucket Name", bucket.Arn)
 		return nil
+
 	})
+
 }
