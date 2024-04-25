@@ -1,3 +1,9 @@
 config:
   aws:profile: default
   aws:region: us-east-1
+  next_kubernetes:subnets:
+    - 10.0.1.0/16
+    - 10.0.2.0/16
+    - 10.0.3.0/16
+    - 10.0.4.0/16
+  vpc_name: my-vpc-name

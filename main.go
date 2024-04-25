@@ -1,29 +1,54 @@
 package main
 
 import (
-	"infrastructure/aws_services"
+	eks "infrastructure/aws_services/eks"
+	iam "infrastructure/aws_services/iam"
+	"infrastructure/aws_services/subnets"
+	vpc "infrastructure/aws_services/vpc"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
+		cfg := config.New(ctx, "")
 
-		bucket, err := aws_services.CreateS3(ctx)
+		vpc, err := vpc.CreateVPC(ctx, cfg)
 
-		if(err != nil){
+		if err != nil {
 			return err
 		}
 
-		policy, err := aws_services.CreateIAMPolicy(ctx, bucket)
+		subnets, errors := subnets.CreateSubnets(ctx, cfg, vpc)
 
-		if(err != nil){
+		if errors[0] != nil{
+			return errors[0]
+		}
+
+		eksRole, err := iam.EKSRole(ctx)
+
+		if err != nil{
 			return err
 		}
 
-		// // Export the ARN (Amazon Resource Name) of the created policy
-		ctx.Export("policyArn", policy.Arn)
-		ctx.Export("Bucket Name", bucket.Arn)
+		ec2NodeRole, err := iam.CreateEC2Role(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		eks_cluster, err := eks.CreateEKSCluster2(ctx, vpc, subnets, eksRole, ec2NodeRole)
+
+		if err != nil {
+			return err
+		}
+
+		ctx.Export("vpc name", vpc.ID())
+		ctx.Export("First Subnet", subnets[0].ID())
+		ctx.Export("EKS Name", eks_cluster.Name)
+
+		
 		return nil
 
 	})
