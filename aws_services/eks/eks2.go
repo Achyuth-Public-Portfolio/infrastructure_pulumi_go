@@ -1,50 +1,55 @@
 package eks
 
 import (
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
+	oldec2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
-	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
+	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func CreateEKSCluster2(ctx *pulumi.Context, vpc *ec2.Vpc, subnets []*ec2.Subnet, role *iam.Role, ec2NodeRole *iam.Role) (*eks.Cluster, error) {
+func CreateEKSCluster2(ctx *pulumi.Context, vpc *ec2.Vpc, subnets []*ec2.Subnet, securityGroup *oldec2.SecurityGroup) (*eks.Cluster, error) {
 
-	cluster, err := eks.NewCluster(ctx, "My_EKS_Cluster", &eks.ClusterArgs{
-		Name:    pulumi.String("My_EKS_Cluster"),
-		RoleArn: role.Arn,
-		VpcConfig: &eks.ClusterVpcConfigArgs{
-			// VpcId: vpc.ID(),
-			SubnetIds: pulumi.StringArray{
-				subnets[0].ID(),
-				subnets[1].ID(),
-				subnets[2].ID(),
-			},
-			EndpointPublicAccess: pulumi.Bool(true),
-		},		
-		
-	})
+	// instanceProfile, err := iam.NewInstanceProfile(ctx, "Instance-profile-1", &iam.InstanceProfileArgs{
+	// 	Role: role.Name,
+	// })
 
-	eks.NewNodeGroup(ctx, "Node_Group", &eks.NodeGroupArgs{
-		ClusterName: cluster.Name,
-		NodeRoleArn: ec2NodeRole.Arn,
-		NodeGroupName: pulumi.String("My_Node_Group"),
+
+	// cluster, err := eks.NewCluster(ctx, "EKS Cluster", &eks.ClusterArgs{
+	// 	SkipDefaultNodeGroup: pulumi.BoolRef(true),
+	// 	InstanceRoles: nil,
+	// })
+
+	cluster, err := eks.NewCluster(ctx, "cluster", &eks.ClusterArgs{
+		DesiredCapacity: pulumi.Int(5),
+		MinSize:         pulumi.Int(3),
+		MaxSize:         pulumi.Int(5),
+		// EnabledClusterLogTypes: pulumi.StringArray{
+		// 	pulumi.String("api"),
+		// 	pulumi.String("audit"),
+		// 	pulumi.String("authenticator"),
+		// },
 		SubnetIds: pulumi.StringArray{
 			subnets[0].ID(),
 			subnets[1].ID(),
 			subnets[2].ID(),
 		},
-		ScalingConfig: &eks.NodeGroupScalingConfigArgs{
-			DesiredSize: pulumi.Int(2),
-			MaxSize: pulumi.Int(3),
-			MinSize: pulumi.Int(1),
-		},
-		InstanceTypes: pulumi.StringArray{
-			pulumi.String("t2.micro"),
-		},
-
-		
+		ClusterSecurityGroup: securityGroup,
 	})
 
-	return cluster, err
+	// eks.NewNodeGroup(ctx, "Fixed Node Group", &eks.NodeGroupArgs{
+	// 	Cluster: cluster,
+	// 	InstanceType:    pulumi.String("t2.nano"),
+	// 	DesiredCapacity: pulumi.Int(2),
+	// 	MinSize:         pulumi.Int(1),
+	// 	MaxSize:         pulumi.Int(3),
+	// 	SpotPrice:       pulumi.String("1"),
+	// 	Labels: map[string]string{
+	// 		"ondemand": "true",
+	// 	},
+	// 	InstanceProfile: instanceProfile,
+	// })
 
+	ctx.Export("KubeConfig", cluster.Kubeconfig);
+
+	return cluster, err
 }
